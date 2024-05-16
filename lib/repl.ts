@@ -25,10 +25,12 @@ export const Repl = new class {
 	listenersSetup = false;
 
 	setupListeners(filename: string) {
+		console.log("setupListeners");
 		if (Repl.listenersSetup) return;
 		Repl.listenersSetup = true;
 		// Clean up REPL sockets and child processes on forced exit.
 		process.once('exit', code => {
+			console.log("exit");
 			for (const s of Repl.socketPathnames) {
 				try {
 					fs.unlinkSync(s);
@@ -65,6 +67,7 @@ export const Repl = new class {
 	 * clean and ready for new REPL sockets by the time this function returns.
 	 */
 	cleanup() {
+		console.log("cleanup");
 		const config = typeof Config !== 'undefined' ? Config : {};
 		if (!config.repl) return;
 
@@ -100,6 +103,7 @@ export const Repl = new class {
 	 * non-global context.
 	 */
 	start(filename: string, evalFunction: (input: string) => any) {
+		console.log("start");
 		const config = typeof Config !== 'undefined' ? Config : {};
 		if (!config.repl) return;
 
