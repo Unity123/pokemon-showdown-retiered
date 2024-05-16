@@ -86,7 +86,7 @@ export const Repl = new class {
 					socket.end();
 					socket.destroy();
 				}).on('error', () => {
-					fs.unlinkSync(pathname);
+					//fs.unlinkSync(pathname);
 				});
 			}
 		}
