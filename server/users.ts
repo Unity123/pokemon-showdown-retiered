@@ -64,6 +64,7 @@ const CONNECTION_EXPIRY_TIME = 24 * 60 * MINUTES;
 // Keeping them all here makes it easy to ensure they stay consistent
 
 function move(user: User, newUserid: ID) {
+	console.log("move");
 	if (user.id === newUserid) return true;
 	if (!user) return false;
 
@@ -78,6 +79,7 @@ function move(user: User, newUserid: ID) {
 	return true;
 }
 function add(user: User) {
+	console.log("add");
 	if (user.id) throw new Error(`Adding a user that already exists`);
 
 	numUsers++;
@@ -89,10 +91,12 @@ function add(user: User) {
 	users.set(user.id, user);
 }
 function deleteUser(user: User) {
+	console.log("deleteUser");
 	prevUsers.delete('guest' + user.guestNum as ID);
 	users.delete(user.id);
 }
 function merge(toRemain: User, toDestroy: User) {
+	console.log("merge");
 	prevUsers.delete(toRemain.id);
 	prevUsers.set(toDestroy.id, toRemain.id);
 }
@@ -113,6 +117,7 @@ function merge(toRemain: User, toDestroy: User) {
  * If this behavior is undesirable, use Users.getExact.
  */
 function getUser(name: string | User | null, exactName = false) {
+	console.log("getUser");
 	if (!name || name === '!') return null;
 	if ((name as User).id) return name as User;
 	let userid = toID(name);
@@ -139,6 +144,7 @@ function getUser(name: string | User | null, exactName = false) {
  * The former is not recommended because it's less readable.
  */
 function getExactUser(name: string | User) {
+	console.log("getExactUser");
 	return getUser(name, true);
 }
 
@@ -149,6 +155,7 @@ function getExactUser(name: string | User) {
  *   Users.findUsers([userids], [ips])
  */
 function findUsers(userids: ID[], ips: string[], options: {forPunishment?: boolean, includeTrusted?: boolean} = {}) {
+	console.log("findUsers");
 	const matches: User[] = [];
 	if (options.forPunishment) ips = ips.filter(ip => !Punishments.isSharedIp(ip));
 	const ipMatcher = IPTools.checker(ips);
@@ -172,6 +179,7 @@ function findUsers(userids: ID[], ips: string[], options: {forPunishment?: boole
 const globalAuth = new GlobalAuth();
 
 function isUsernameKnown(name: string) {
+	console.log("isUsernameKnown");
 	const userid = toID(name);
 	if (Users.get(userid)) return true;
 	if (globalAuth.has(userid)) return true;
@@ -182,10 +190,12 @@ function isUsernameKnown(name: string) {
 }
 
 function isUsername(name: string) {
+	console.log("isUsername");
 	return /[A-Za-z0-9]/.test(name.charAt(0)) && /[A-Za-z]/.test(name) && !name.includes(',');
 }
 
 function isTrusted(userid: ID) {
+	console.log("isTrusted");
 	if (globalAuth.has(userid)) return userid;
 	for (const room of Rooms.global.chatRooms) {
 		if (room.persist && room.settings.isPrivate !== true && room.auth.isStaff(userid)) {
@@ -198,6 +208,7 @@ function isTrusted(userid: ID) {
 }
 
 function isPublicBot(userid: ID) {
+	console.log("isPublicBot");
 	if (globalAuth.get(userid) === '*') return true;
 	for (const room of Rooms.global.chatRooms) {
 		if (room.persist && !room.settings.isPrivate && room.auth.get(userid) === '*') {
@@ -255,6 +266,7 @@ export class Connection {
 		ip: string | null,
 		protocol: string | null
 	) {
+		console.log("constructing Connection");
 		const now = Date.now();
 
 		this.id = id;
@@ -276,6 +288,7 @@ export class Connection {
 		this.openPages = null;
 	}
 	sendTo(roomid: RoomID | BasicRoom | null, data: string) {
+		console.log("sendTo");
 		if (roomid && typeof roomid !== 'string') roomid = roomid.roomid;
 		if (roomid && roomid !== 'lobby') data = `>${roomid}\n${data}`;
 		Sockets.socketSend(this.worker, this.socketid, data);
@@ -283,36 +296,43 @@ export class Connection {
 	}
 
 	send(data: string) {
+		console.log("send");
 		Sockets.socketSend(this.worker, this.socketid, data);
 		Monitor.countNetworkUse(data.length);
 	}
 
 	destroy() {
+		console.log("destroy");
 		Sockets.socketDisconnect(this.worker, this.socketid);
 		this.onDisconnect();
 	}
 	onDisconnect() {
+		console.log("onDisconnect");
 		connections.delete(this.id);
 		if (this.user) this.user.onDisconnect(this);
 		this.user = null!;
 	}
 
 	popup(message: string) {
+		console.log("popup");
 		this.send(`|popup|` + message.replace(/\n/g, '||'));
 	}
 
 	joinRoom(room: Room) {
+		console.log("joinRoom");
 		if (this.inRooms.has(room.roomid)) return;
 		this.inRooms.add(room.roomid);
 		Sockets.roomAdd(this.worker, room.roomid, this.socketid);
 	}
 	leaveRoom(room: Room) {
+		console.log("leaveRoom");
 		if (this.inRooms.has(room.roomid)) {
 			this.inRooms.delete(room.roomid);
 			Sockets.roomRemove(this.worker, room.roomid, this.socketid);
 		}
 	}
 	toString() {
+		console.log("toString");
 		let buf = this.user ? `${this.user.id}[${this.user.connections.indexOf(this)}]` : `[disconnected]`;
 		buf += `:${this.ip}`;
 		if (this.protocol !== 'websocket') buf += `:${this.protocol}`;
@@ -424,6 +444,7 @@ export class User extends Chat.MessageContext {
 	userMessage: string;
 	lastWarnedAt: number;
 	constructor(connection: Connection) {
+		console.log("constructing User");
 		super(connection.user);
 		this.user = this;
 		this.inRooms = new Set();
@@ -523,6 +544,7 @@ export class User extends Chat.MessageContext {
 	}
 
 	sendTo(roomid: RoomID | BasicRoom | null, data: string) {
+		console.log("sendTo");
 		if (roomid && typeof roomid !== 'string') roomid = roomid.roomid;
 		if (roomid && roomid !== 'lobby') data = `>${roomid}\n${data}`;
 		for (const connection of this.connections) {
@@ -532,15 +554,18 @@ export class User extends Chat.MessageContext {
 		}
 	}
 	send(data: string) {
+		console.log("send");
 		for (const connection of this.connections) {
 			connection.send(data);
 			Monitor.countNetworkUse(data.length);
 		}
 	}
 	popup(message: string) {
+		console.log("popup");
 		this.send(`|popup|` + message.replace(/\n/g, '||'));
 	}
 	getIdentity(room: BasicRoom | null = null) {
+		console.log("getIdentity");
 		const punishgroups = Config.punishgroups || {locked: null, muted: null};
 		if (this.locked || this.namelocked) {
 			const lockedSymbol = (punishgroups.locked && punishgroups.locked.symbol || '\u203d');
@@ -560,11 +585,13 @@ export class User extends Chat.MessageContext {
 		return this.tempGroup + this.name;
 	}
 	getIdentityWithStatus(room: BasicRoom | null = null) {
+		console.log("getIdentityWithStatus");
 		const identity = this.getIdentity(room);
 		const status = this.statusType === 'online' ? '' : '@!';
 		return `${identity}${status}`;
 	}
 	getStatus() {
+		console.log("getStatus");
 		const statusMessage = this.statusType === 'busy' ? '!(Busy) ' : this.statusType === 'idle' ? '!(Idle) ' : '';
 		const status = statusMessage + (this.userMessage || '');
 		return status;
