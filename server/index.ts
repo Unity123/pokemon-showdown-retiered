@@ -62,6 +62,7 @@ import {FS, Repl} from '../lib';
  * and many of our imports require the `Config` global to be set up.
  *********************************************************/
 function setupGlobals() {
+	console.log("setupGlobals");
 	const ConfigLoader = require('./config-loader');
 	global.Config = ConfigLoader.Config;
 
@@ -146,6 +147,7 @@ import {Sockets} from './sockets';
 global.Sockets = Sockets;
 
 export function listen(port: number, bindAddress: string, workerCount: number) {
+	console.log("listen");
 	Sockets.listen(port, bindAddress, workerCount);
 }
 
