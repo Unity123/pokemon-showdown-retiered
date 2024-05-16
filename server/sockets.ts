@@ -463,6 +463,8 @@ export class ServerStream extends Streams.ObjectReadWriteStream<string> {
 			return;
 		}
 
+		console.log(socket);
+
 		const socketid = '' + (++this.socketCounter);
 		this.sockets.set(socketid, socket);
 
