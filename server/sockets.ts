@@ -23,6 +23,7 @@ type StreamWorker = ProcessManager.StreamWorker;
 
 export const Sockets = new class {
 	async onSpawn(worker: StreamWorker) {
+		console.log("onSpawn");
 		const id = worker.workerid;
 		for await (const data of worker.stream) {
 			switch (data.charAt(0)) {
@@ -60,10 +61,12 @@ export const Sockets = new class {
 		}
 	}
 	onUnspawn(worker: StreamWorker) {
+		console.log("onUnspawn");
 		Users.socketDisconnectAll(worker, worker.workerid);
 	}
 
 	listen(port?: number, bindAddress?: string, workerCount?: number) {
+		console.log("listen");
 		if (port !== undefined && !isNaN(port)) {
 			Config.port = port;
 			Config.ssl = null;
@@ -95,38 +98,46 @@ export const Sockets = new class {
 	}
 
 	socketSend(worker: StreamWorker, socketid: string, message: string) {
+		console.log("socketSend");
 		void worker.stream.write(`>${socketid}\n${message}`);
 	}
 
 	socketDisconnect(worker: StreamWorker, socketid: string) {
+		console.log("socketDisconnect");
 		void worker.stream.write(`!${socketid}`);
 	}
 
 	roomBroadcast(roomid: RoomID, message: string) {
+		console.log("roomBroadcast");
 		for (const worker of PM.workers) {
 			void worker.stream.write(`#${roomid}\n${message}`);
 		}
 	}
 
 	roomAdd(worker: StreamWorker, roomid: RoomID, socketid: string) {
+		console.log("roomAdd");
 		void worker.stream.write(`+${roomid}\n${socketid}`);
 	}
 
 	roomRemove(worker: StreamWorker, roomid: RoomID, socketid: string) {
+		console.log("roomRemove");
 		void worker.stream.write(`-${roomid}\n${socketid}`);
 	}
 
 	channelBroadcast(roomid: RoomID, message: string) {
+		console.log("channelBroadcast");
 		for (const worker of PM.workers) {
 			void worker.stream.write(`:${roomid}\n${message}`);
 		}
 	}
 
 	channelMove(worker: StreamWorker, roomid: RoomID, channelid: ChannelID, socketid: string) {
+		console.log("channelMove");
 		void worker.stream.write(`.${roomid}\n${channelid}\n${socketid}`);
 	}
 
 	eval(worker: StreamWorker, query: string) {
+		console.log("eval");
 		void worker.stream.write(`$${query}`);
 	}
 };
@@ -149,11 +160,13 @@ export class ServerStream extends Streams.ObjectReadWriteStream<string> {
 		'$'(data) {
 			// $code
 			// eslint-disable-next-line no-eval
+			console.log("$");
 			eval(data.substr(1));
 		},
 		'!'(data) {
 			// !socketid
 			// destroy
+			console.log("!");
 			const socketid = data.substr(1);
 			const socket = this.sockets.get(socketid);
 			if (!socket) return;
@@ -172,6 +185,7 @@ export class ServerStream extends Streams.ObjectReadWriteStream<string> {
 		'>'(data) {
 			// >socketid, message
 			// message to single connection
+			console.log(">");
 			const nlLoc = data.indexOf('\n');
 			const socketid = data.substr(1, nlLoc - 1);
 			const socket = this.sockets.get(socketid);
@@ -184,6 +198,7 @@ export class ServerStream extends Streams.ObjectReadWriteStream<string> {
 			// message to all connections in room
 			// #, message
 			// message to all connections
+			console.log("#");
 			const nlLoc = data.indexOf('\n');
 			const roomid = data.substr(1, nlLoc - 1) as RoomID;
 			const room = roomid ? this.rooms.get(roomid) : this.sockets;
@@ -194,6 +209,7 @@ export class ServerStream extends Streams.ObjectReadWriteStream<string> {
 		'+'(data) {
 			// +roomid, socketid
 			// join room with connection
+			console.log("+");
 			const nlLoc = data.indexOf('\n');
 			const socketid = data.substr(nlLoc + 1);
 			const socket = this.sockets.get(socketid);
@@ -209,6 +225,7 @@ export class ServerStream extends Streams.ObjectReadWriteStream<string> {
 		'-'(data) {
 			// -roomid, socketid
 			// leave room with connection
+			console.log("-");
 			const nlLoc = data.indexOf('\n');
 			const roomid = data.slice(1, nlLoc) as RoomID;
 			const room = this.rooms.get(roomid);
@@ -225,6 +242,7 @@ export class ServerStream extends Streams.ObjectReadWriteStream<string> {
 		'.'(data) {
 			// .roomid, channelid, socketid
 			// move connection to different channel in room
+			console.log(".");
 			const nlLoc = data.indexOf('\n');
 			const roomid = data.slice(1, nlLoc) as RoomID;
 			const nlLoc2 = data.indexOf('\n', nlLoc + 1);
@@ -245,6 +263,7 @@ export class ServerStream extends Streams.ObjectReadWriteStream<string> {
 		':'(data) {
 			// :roomid, message
 			// message to a room, splitting `|split` by channel
+			console.log(":");
 			const nlLoc = data.indexOf('\n');
 			const roomid = data.slice(1, nlLoc) as RoomID;
 			const room = this.rooms.get(roomid);
@@ -273,6 +292,7 @@ export class ServerStream extends Streams.ObjectReadWriteStream<string> {
 		customhttpresponse?: typeof Config.customhttpresponse,
 		disablenodestatic?: boolean,
 	}) {
+		console.log("constructing ServerStream");
 		super();
 		if (!config.bindaddress) config.bindaddress = '0.0.0.0';
 
@@ -433,6 +453,7 @@ export class ServerStream extends Streams.ObjectReadWriteStream<string> {
 	 * Afterwards, the worker process will die on its own
 	 */
 	cleanup() {
+		console.log("cleanup");
 		for (const socket of this.sockets.values()) {
 			try {
 				socket.destroy();
@@ -450,6 +471,7 @@ export class ServerStream extends Streams.ObjectReadWriteStream<string> {
 	}
 
 	onConnection(socket: import('sockjs').Connection) {
+		console.log("onConnection");
 		// For reasons that are not entirely clear, SockJS sometimes triggers
 		// this event with a null `socket` argument.
 		if (!socket) return;
@@ -462,8 +484,6 @@ export class ServerStream extends Streams.ObjectReadWriteStream<string> {
 			} catch {}
 			return;
 		}
-
-		console.log(socket);
 
 		const socketid = '' + (++this.socketCounter);
 		this.sockets.set(socketid, socket);
@@ -483,6 +503,7 @@ export class ServerStream extends Streams.ObjectReadWriteStream<string> {
 		this.push(`*${socketid}\n${socketip}\n${socket.protocol}`);
 
 		socket.on('data', message => {
+			console.log("data");
 			// drop empty messages (DDoS?)
 			if (!message) return;
 			// drop messages over 100KB
@@ -502,6 +523,7 @@ export class ServerStream extends Streams.ObjectReadWriteStream<string> {
 		});
 
 		socket.once('close', () => {
+			console.log("close");
 			this.push(`!${socketid}`);
 			this.sockets.delete(socketid);
 			for (const room of this.rooms.values()) room.delete(socketid);
@@ -509,7 +531,7 @@ export class ServerStream extends Streams.ObjectReadWriteStream<string> {
 	}
 
 	_write(data: string) {
-		// console.log('worker received: ' + data);
+		console.log('worker received: ' + data);
 
 		const receiver = this.receivers[data.charAt(0)];
 		if (receiver) receiver.call(this, data);
