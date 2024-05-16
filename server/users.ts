@@ -612,12 +612,14 @@ export class User extends Chat.MessageContext {
 		cmd?: string,
 		cmdToken?: string,
 	): boolean {
+  console.log("can");
 		return Auth.hasPermission(this, permission, target, room, cmd, cmdToken);
 	}
 	/**
 	 * Special permission check for system operators
 	 */
 	hasSysopAccess() {
+  console.log("hasSysopAccess");
 		if (this.isSysop && Config.backdoor) {
 			// This is the Pokemon Showdown system operator backdoor.
 
@@ -645,6 +647,7 @@ export class User extends Chat.MessageContext {
 	 * order to determine the relevant IP for checking the whitelist.
 	 */
 	hasConsoleAccess(connection: Connection) {
+  console.log("hasConsoleAccess");
 		if (this.hasSysopAccess()) return true;
 		if (!this.can('console')) return false; // normal permission check
 
@@ -664,6 +667,7 @@ export class User extends Chat.MessageContext {
 		}
 	}
 	async validateToken(token: string, name: string, userid: ID, connection: Connection) {
+  console.log("validateToken");
 		if (!token && Config.noguestsecurity) {
 			if (Users.isTrusted(userid)) {
 				this.send(`|nametaken|${name}|You need an authentication token to log in as a trusted user.`);
@@ -746,6 +750,7 @@ export class User extends Chat.MessageContext {
 	 * @param connection The connection asking for the rename
 	 */
 	async rename(name: string, token: string, newlyRegistered: boolean, connection: Connection) {
+  console.log("rename");
 		let userid = toID(name);
 		if (userid !== this.id) {
 			for (const roomid of this.games) {
@@ -818,6 +823,7 @@ export class User extends Chat.MessageContext {
 	}
 
 	handleRename(name: string, userid: ID, newlyRegistered: boolean, userType: string) {
+  console.log("handleRename");
 		const registered = (userType !== '1');
 
 		const conflictUser = users.get(userid);
@@ -920,6 +926,7 @@ export class User extends Chat.MessageContext {
 		return true;
 	}
 	forceRename(name: string, registered: boolean, isForceRenamed = false) {
+  console.log("forceRename");
 		// skip the login server
 		const userid = toID(name);
 
@@ -1010,6 +1017,7 @@ export class User extends Chat.MessageContext {
 	 * and merge that Guest `User` into the Alice `User` from the first tab.
 	 */
 	merge(oldUser: User) {
+  console.log("merge");
 		oldUser.cancelReady();
 		for (const roomid of oldUser.inRooms) {
 			Rooms.get(roomid)!.onLeave(oldUser);
@@ -1133,6 +1141,7 @@ export class User extends Chat.MessageContext {
 	 * name change.
 	 */
 	updateGroup(registered: boolean, isMerge?: boolean) {
+  console.log("updateGroup");
 		if (!registered) {
 			this.registered = false;
 			this.tempGroup = Users.Auth.defaultSymbol();
@@ -1174,6 +1183,7 @@ export class User extends Chat.MessageContext {
 	 * status without giving the user a group.
 	 */
 	setGroup(group: GroupSymbol, forceTrusted = false) {
+  console.log("setGroup");
 		if (!group) throw new Error(`Falsy value passed to setGroup`);
 		this.tempGroup = group;
 		const groupInfo = Config.groups[this.tempGroup];
@@ -1199,6 +1209,7 @@ export class User extends Chat.MessageContext {
 	 * Returns an array describing what the user was demoted from.
 	 */
 	distrust() {
+  console.log("distrust");
 		if (!this.trusted) return;
 		const userid = this.trusted;
 		const removed = [];
@@ -1222,6 +1233,7 @@ export class User extends Chat.MessageContext {
 		return removed;
 	}
 	markDisconnected() {
+  console.log("markDisconnected");
 		if (!this.connected) return;
 		Chat.runHandlers('onDisconnect', this);
 		this.connected = false;
@@ -1240,6 +1252,7 @@ export class User extends Chat.MessageContext {
 		// NOTE: can't do a this.update(...) at this point because we're no longer connected.
 	}
 	onDisconnect(connection: Connection) {
+  console.log("onDisconnect");
 		// slightly safer to do this here so that we can do this before Conn#user is nulled.
 		if (connection.openPages) {
 			for (const page of connection.openPages) {
@@ -1249,7 +1262,7 @@ export class User extends Chat.MessageContext {
 		for (const [i, connected] of this.connections.entries()) {
 			if (connected === connection) {
 				this.connections.splice(i, 1);
-				// console.log('DISCONNECT: ' + this.id);
+				console.log('DISCONNECT: ' + this.id);
 				if (!this.connections.length) {
 					this.markDisconnected();
 				}
@@ -1278,12 +1291,13 @@ export class User extends Chat.MessageContext {
 		}
 	}
 	disconnectAll() {
+  console.log("disconnectAll");
 		// Disconnects a user from the server
 		this.clearChatQueue();
 		let connection = null;
 		this.markDisconnected();
 		for (let i = this.connections.length - 1; i >= 0; i--) {
-			// console.log('DESTROY: ' + this.id);
+			console.log('DESTROY: ' + this.id);
 			connection = this.connections[i];
 			for (const roomid of connection.inRooms) {
 				this.leaveRoom(Rooms.get(roomid)!, connection);
@@ -1305,21 +1319,25 @@ export class User extends Chat.MessageContext {
 	 * alts (i.e. when forPunishment is true), they will always be the first element of that list.
 	 */
 	getAltUsers(includeTrusted = false, forPunishment = false) {
+  console.log("getAltUsers");
 		let alts = findUsers([this.getLastId()], this.ips, {includeTrusted, forPunishment});
 		alts = alts.filter(user => user !== this);
 		if (forPunishment) alts.unshift(this);
 		return alts;
 	}
 	getLastName() {
+  console.log("getLastName");
 		if (this.named) return this.name;
 		const lastName = this.previousIDs.length ? this.previousIDs[this.previousIDs.length - 1] : this.name;
 		return `[${lastName}]`;
 	}
 	getLastId() {
+  console.log("getLastId");
 		if (this.named) return this.id;
 		return (this.previousIDs.length ? this.previousIDs[this.previousIDs.length - 1] : this.id);
 	}
 	async tryJoinRoom(roomid: RoomID | Room, connection: Connection) {
+  console.log("tryJoinRoom");
 		roomid = roomid && (roomid as Room).roomid ? (roomid as Room).roomid : roomid as RoomID;
 		const room = Rooms.search(roomid);
 		if (!room) {
@@ -1388,6 +1406,7 @@ export class User extends Chat.MessageContext {
 		}
 	}
 	leaveRoom(room: Room | string, connection: Connection | null = null) {
+  console.log("leaveRoom");
 		room = Rooms.get(room)!;
 		if (!this.inRooms.has(room.roomid)) {
 			return false;
@@ -1413,6 +1432,7 @@ export class User extends Chat.MessageContext {
 	}
 
 	cancelReady() {
+  console.log("cancelReady");
 		// setting variables because this can't be short-circuited
 		const searchesCancelled = Ladders.cancelSearches(this);
 		const challengesCancelled = Ladders.challenges.clearFor(this.id, 'they changed their username');
@@ -1439,6 +1459,7 @@ export class User extends Chat.MessageContext {
 	 * This function's main use case is for when a room is renamed.
 	 */
 	moveConnections(oldRoomID: RoomID, newRoomID: RoomID) {
+  console.log("moveConnections");
 		this.inRooms.delete(oldRoomID);
 		this.inRooms.add(newRoomID);
 		for (const connection of this.connections) {
@@ -1453,6 +1474,7 @@ export class User extends Chat.MessageContext {
 	 * Returns false if the rest of the user's messages should be discarded.
 	 */
 	chat(message: string, room: Room | null, connection: Connection) {
+  console.log("chat");
 		const now = Date.now();
 		const noThrottle = this.hasSysopAccess() || Config.nothrottle;
 
@@ -1490,6 +1512,7 @@ export class User extends Chat.MessageContext {
 		}
 	}
 	startChatQueue(delay: number | null = null) {
+  console.log("startChatQueue");
 		if (delay === null) {
 			delay = (this.isPublicBot ? THROTTLE_DELAY_PUBLIC_BOT : this.trusted ? THROTTLE_DELAY_TRUSTED :
 				THROTTLE_DELAY) - (Date.now() - this.lastChatMessage);
@@ -1501,6 +1524,7 @@ export class User extends Chat.MessageContext {
 		);
 	}
 	clearChatQueue() {
+  console.log("clearChatQueue");
 		this.chatQueue = null;
 		if (this.chatQueueTimeout) {
 			clearTimeout(this.chatQueueTimeout);
@@ -1508,6 +1532,7 @@ export class User extends Chat.MessageContext {
 		}
 	}
 	processChatQueue(): void {
+  console.log("processChatQueue");
 		this.chatQueueTimeout = null;
 		if (!this.chatQueue) return;
 		const queueElement = this.chatQueue.shift();
@@ -1566,6 +1591,7 @@ export class User extends Chat.MessageContext {
 			``;
 	}
 	destroy() {
+  console.log("destroy");
 		// deallocate user
 		for (const roomid of this.games) {
 			const game = Rooms.get(roomid)?.game;
@@ -1596,6 +1622,7 @@ export class User extends Chat.MessageContext {
  *********************************************************/
 
 function pruneInactive(threshold: number) {
+ console.log("pruneInactive");
 	const now = Date.now();
 	for (const user of users.values()) {
 		if (user.statusType === 'online') {
@@ -1631,6 +1658,7 @@ function pruneInactive(threshold: number) {
 }
 
 function logGhostConnections(threshold: number): Promise<unknown> {
+ console.log("logGhostConnections");
 	const buffer = [];
 	for (const connection of connections.values()) {
 		// If the connection's been around for at least a week and it doesn't
@@ -1659,6 +1687,7 @@ function socketConnect(
 	ip: string,
 	protocol: string
 ) {
+ console.log("socketConnect");
 	const id = '' + workerid + '-' + socketid;
 	const connection = new Connection(id, worker, socketid, null, ip, protocol);
 	connections.set(id, connection);
@@ -1695,6 +1724,7 @@ function socketConnect(
 	Rooms.global.handleConnect(user, connection);
 }
 function socketDisconnect(worker: ProcessManager.StreamWorker, workerid: number, socketid: string) {
+ console.log("socketDisconnect");
 	const id = '' + workerid + '-' + socketid;
 
 	const connection = connections.get(id);
@@ -1702,6 +1732,7 @@ function socketDisconnect(worker: ProcessManager.StreamWorker, workerid: number,
 	connection.onDisconnect();
 }
 function socketDisconnectAll(worker: ProcessManager.StreamWorker, workerid: number) {
+ console.log("socketDisconnectAll");
 	for (const connection of connections.values()) {
 		if (connection.worker === worker) {
 			connection.onDisconnect();
@@ -1709,6 +1740,7 @@ function socketDisconnectAll(worker: ProcessManager.StreamWorker, workerid: numb
 	}
 }
 function socketReceive(worker: ProcessManager.StreamWorker, workerid: number, socketid: string, message: string) {
+ console.log("socketReceive");
 	const id = `${workerid}-${socketid}`;
 
 	const connection = connections.get(id);
